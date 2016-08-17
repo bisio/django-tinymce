@@ -11,7 +11,7 @@ from django.conf import settings
 from django.contrib.admin import widgets as admin_widgets
 from django.core.urlresolvers import reverse
 from django.forms.widgets import flatatt
-from django.forms.util import smart_unicode
+from django.utils.encoding import smart_unicode
 from django.utils.html import escape
 from django.utils import simplejson
 from django.utils.datastructures import SortedDict
@@ -53,7 +53,7 @@ class TinyMCE(forms.Textarea):
         assert 'id' in final_attrs, "TinyMCE widget attributes must contain 'id'"
 
         mce_config = tinymce.settings.DEFAULT_CONFIG.copy()
-        mce_config.update(get_language_config(self.content_language))
+        mce_config.update(get_language_config(self.content_language, urlconf=self.attrs.get('urlconf', None)))
         if tinymce.settings.USE_FILEBROWSER:
             mce_config['file_browser_callback'] = "djangoFileBrowser"
         mce_config.update(self.mce_attrs)
@@ -79,11 +79,11 @@ class TinyMCE(forms.Textarea):
 
     def _media(self):
         if tinymce.settings.USE_COMPRESSOR:
-            js = [reverse('tinymce-compressor')]
+           js = [reverse('tinymce-compressor', urlconf=self.attrs.get('urlconf', None))]
         else:
             js = [tinymce.settings.JS_URL]
         if tinymce.settings.USE_FILEBROWSER:
-            js.append(reverse('tinymce-filebrowser'))
+            js.append(reverse('tinymce-filebrowser', urlconf=self.attrs.get('urlconf', None)))
         return forms.Media(js=js)
     media = property(_media)
 
@@ -92,7 +92,7 @@ class AdminTinyMCE(admin_widgets.AdminTextareaWidget, TinyMCE):
     pass
 
 
-def get_language_config(content_language=None):
+def get_language_config(content_language=None, urlconf=None):
     language = get_language()[:2]
     if content_language:
         content_language = content_language[:2]
@@ -122,6 +122,6 @@ def get_language_config(content_language=None):
         config['directionality'] = 'ltr'
 
     if tinymce.settings.USE_SPELLCHECKER:
-        config['spellchecker_rpc_url'] = reverse('tinymce.views.spell_check')
+        config['spellchecker_rpc_url'] = reverse('tinymce.views.spell_check', urlconf=urlconf)
 
     return config
